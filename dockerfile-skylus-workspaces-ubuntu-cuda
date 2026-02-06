@@ -1,9 +1,9 @@
 #### Build Stage ####
-ARG BASE_IMAGE="ubuntu:20.04"
+ARG BASE_IMAGE="nvidia/cuda:13.0.0-base-ubuntu22.04"
 FROM $BASE_IMAGE AS base_layer
 
 ### Environment config
-ARG BG_IMG=bg_kasm.png
+ARG BG_IMG=bg_skylus_workspaces.png
 ARG EXTRA_SH=noop.sh
 ARG DISTRO=ubuntu
 ARG LANG='en_US.UTF-8'
@@ -51,7 +51,7 @@ RUN bash $INST_SCRIPTS/xfce/install_xfce_ui.sh && rm -rf $INST_SCRIPTS/xfce/
 ADD ./src/$DISTRO/xfce/.config/ $HOME/.config/
 RUN mkdir -p /usr/share/extra/backgrounds/
 RUN mkdir -p /usr/share/extra/icons/
-ADD /src/common/resources/images/bg_kasm.png  /usr/share/backgrounds/bg_kasm.png
+ADD /src/common/resources/images/bg_skylus_workspaces.png /usr/share/backgrounds/bg_skylus_workspaces.png
 ADD /src/common/resources/images/$BG_IMG  /usr/share/backgrounds/bg_default.png
 ADD /src/common/resources/images/icon_ubuntu.png /usr/share/extra/icons/icon_ubuntu.png
 ADD /src/common/resources/images/icon_ubuntu.png /usr/share/extra/icons/icon_default.png
@@ -196,7 +196,7 @@ FROM scratch
 COPY --from=base_layer / /
 
 ### Labels
-LABEL "org.opencontainers.image.authors"='Kasm Tech "info@kasmweb.com"'
+LABEL "org.opencontainers.image.authors"='Netweb Technologies India Ltd. "info@netwebindia.com"'
 LABEL "com.kasmweb.image"="true"
 LABEL "com.kasmweb.gpu_acceleration_egl"="nvidia"
 

@@ -31,7 +31,7 @@ Once launched, the container can be accessed via a browser at:
 https://<IP>:6901
 ```
 
-- **User**: `skylus_user`  
+- **User**: `kasm_user`  
 - **Password**: `password`  
 
 ---
