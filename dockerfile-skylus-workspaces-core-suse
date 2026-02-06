@@ -1,5 +1,5 @@
 #### Build Stage ####
-ARG BASE_IMAGE="opensuse/leap:15.5"
+ARG BASE_IMAGE="opensuse/leap:15.6"
 
 FROM $BASE_IMAGE AS install_tools
 ARG DISTRO=opensuse
@@ -14,7 +14,7 @@ ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
 FROM install_tools AS base_layer
 
 ### Environment config
-ARG BG_IMG=bg_opensuse.png
+ARG BG_IMG=bg_skylus_workspaces.png
 ARG EXTRA_SH=noop.sh
 ARG DISTRO=opensuse
 ARG LANG='en_US.UTF-8'
@@ -45,7 +45,7 @@ RUN bash $INST_SCRIPTS/fonts/install_custom_fonts.sh && rm -rf $INST_SCRIPTS/fon
 COPY ./src/ubuntu/install/xfce $INST_SCRIPTS/xfce/
 RUN bash $INST_SCRIPTS/xfce/install_xfce_ui.sh && rm -rf $INST_SCRIPTS/xfce/
 COPY ./src/$DISTRO/xfce/.config/ $HOME/.config/
-COPY /src/common/resources/images/bg_kasm.png /usr/share/backgrounds/bg_kasm.png
+COPY /src/common/resources/images/bg.s=opensuse.png /usr/share/backgrounds/bg_suse.png
 COPY /src/common/resources/images/$BG_IMG /usr/share/backgrounds/bg_default.png
 
 ### Install kasm_vnc dependencies and binaries
