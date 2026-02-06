@@ -1,34 +1,72 @@
-![Logo][logo]
-# Workspaces Core Images
-This repository contains the base or **"Core"** images from which all other Workspaces images are derived.
-These images are based off popular linux distributions and contain the wiring necessary to work within the Kasm platform.
+# Workspaces Core Images  
 
-While these images are primarily built to run inside the Kasm platform, they can also be executed manually.  Please note that certain functionality, such as audio, uploads, downloads, and microphone passthrough are only available within the Kasm platform.
+⚠️ **Internal Use Only**  
+This repository and its documentation are strictly intended for **Netweb Technologies India Ltd. Administrators**. Do not share outside the organization.  
+
+---
+
+## Introduction  
+
+This repository contains the **base or “Core” images** from which all other Workspaces images are derived.  
+
+- These images are based on popular Linux distributions.  
+- They include all required wiring and configuration to run properly inside the Workspaces platform.  
+- Although primarily intended for the platform, they may also be executed manually.  
+
+> **Note**: When run outside the platform, certain features (e.g., audio, file uploads/downloads, microphone passthrough) are **not available**.  
+
+---
+
+## Running Core Images  
+
+To start a container, use the following command:  
+
+```bash
+sudo docker run --rm -it --shm-size=512m -p 6901:6901   -e VNC_PW=password   --build-arg START_XFCE4=1  harbor.local/skylus-workspaces/<image>:<tag>
+```
+
+Once launched, the container can be accessed via a browser at:  
 
 ```
-sudo docker run --rm  -it --shm-size=512m -p 6901:6901 -e VNC_PW=password --build-arg START_XFCE4=1 kasmweb/<image>:<tag>
+https://<IP>:6901
 ```
 
-The container is now accessible via a browser : `https://<IP>:6901`
+- **User**: `skylus_user`  
+- **Password**: `password`  
 
- - **User** : `kasm_user`
- - **Password**: `password`
+---
 
+## About Workspaces  
 
-For more information about building custom images please review the  [**How To Guide**](https://kasmweb.com/docs/latest/how_to/building_images.html?utm_campaign=Github&utm_source=github)
+Workspaces is a **docker container streaming platform** that enables browser-based access to:  
 
-The Kasm team publishes applications and desktop images for use inside the platform. More information, including source can be found in the [Default Images List](https://kasmweb.com/docs/latest/guide/custom_images.html?utm_campaign=Github&utm_source=github)
+- Desktops  
+- Applications  
+- Web services  
 
-# About Workspaces
-Kasm Workspaces is a docker container streaming platform that enables you to deliver browser-based access to desktops, applications, and web services. Kasm uses a modern DevOps approach for programmatic delivery of services via Containerized Desktop Infrastructure (CDI) technology to create on-demand, disposable, docker containers that are accessible via web browser. The rendering of the graphical-based containers is powered by the open-source project   [**KasmVNC**](https://github.com/kasmtech/KasmVNC?utm_campaign=Github&utm_source=github)
+It leverages **Containerized Desktop Infrastructure (CDI)** technology to deliver:  
 
-![Screenshot][Kasm_Workflow]
+- On-demand  
+- Disposable  
+- Docker containers  
 
-Kasm Workspaces was developed to meet the most demanding secure collaboration requirements that is highly scalable, customizable, and easy to maintain.  Most importantly, Kasm provides a solution, rather than a service, so it is infinitely customizable to your unique requirements and includes a developer API so that it can be integrated with, rather than replace, your existing applications and workflows. Kasm can be deployed in the cloud (Public or Private), on-premise (Including Air-Gapped Networks), or in a hybrid configuration.
+These containers are rendered directly in the browser using the internal **VNC service**.  
 
-# Live Demo
-A self-guided on-demand demo is available at [**kasmweb.com**](https://www.kasmweb.com/demo.html?utm_campaign=Github&utm_source=github)
+### Key Characteristics  
 
+- **Scalable** – designed to handle demanding enterprise workloads.  
+- **Customizable** – adaptable for unique organizational requirements.  
+- **Maintainable** – follows a modern DevOps approach for ease of updates and deployment.  
+- **Developer-Friendly** – includes an API for seamless integration with existing workflows and applications.  
 
-[logo]: https://cdn2.hubspot.net/hubfs/5856039/dockerhub/kasm_logo.png "Kasm Logo"
-[Kasm_Workflow]: https://cdn2.hubspot.net/hubfs/5856039/dockerhub/kasm_workflow_960.gif "Kasm Workflow"
+---
+
+## Deployment Options  
+
+Workspaces supports multiple deployment models to meet operational and security requirements:  
+
+- **Cloud** (public or private)  
+- **On-Premise** (including air-gapped networks)  
+- **Hybrid Configurations**  
+
+---
