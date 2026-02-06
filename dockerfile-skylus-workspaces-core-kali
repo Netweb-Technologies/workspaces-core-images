@@ -1,7 +1,35 @@
 #### Build Stage ####
-ARG BASE_IMAGE="fedora:37"
-FROM $BASE_IMAGE AS install_tools
-ARG DISTRO=fedora37
+ARG BASE_IMAGE="kalilinux/kali-rolling:amd64"
+FROM $BASE_IMAGE AS base_layer
+
+ARG DISTRO=kali
+
+### Environment config
+ARG BG_IMG=bg_kali.jpg
+ARG EXTRA_SH=noop.sh
+ARG LANG='en_US.UTF-8'
+ARG LANGUAGE='en_US:en'
+ARG LC_ALL='en_US.UTF-8'
+ARG TZ='Etc/UTC'
+ENV DEBIAN_FRONTEND=noninteractive \
+    DISTRO=$DISTRO \
+    HOME=/home/kasm-default-profile \
+    INST_SCRIPTS=/dockerstartup/install \
+    KASM_VNC_PATH=/usr/share/kasmvnc \
+    LANG=$LANG \
+    LANGUAGE=$LANGUAGE \
+    LC_ALL=$LC_ALL \
+    TZ=$TZ \
+    STARTUPDIR=/dockerstartup
+
+### Home setup
+WORKDIR $HOME
+RUN mkdir -p $HOME/Desktop
+
+### Support NVIDIA gpus for graphics acceleration
+RUN echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf && \
+    echo "/usr/local/nvidia/lib64" >> /etc/ld.so.conf.d/nvidia.conf
+COPY src/ubuntu/install/nvidia/10_nvidia.json /usr/share/glvnd/egl_vendor.d/10_nvidia.json
 
 ### Setup package rules
 COPY ./src/ubuntu/install/package_rules $INST_SCRIPTS/package_rules/
@@ -9,48 +37,10 @@ RUN bash $INST_SCRIPTS/package_rules/package_rules.sh && rm -rf $INST_SCRIPTS/pa
 
 ### Install common tools
 COPY ./src/ubuntu/install/tools $INST_SCRIPTS/tools/
-RUN bash "$INST_SCRIPTS/tools/install_tools.sh" && rm -rf "$INST_SCRIPTS/tools/"
-ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
+RUN bash $INST_SCRIPTS/tools/install_tools.sh && rm -rf $INST_SCRIPTS/tools/
 
-FROM install_tools AS base_layer
-
-MAINTAINER Kasm Tech "info@kasmweb.com"
-LABEL "com.kasmweb.image"="true"
-
-### Environment config
-ARG BG_IMG=bg_fedora.png
-ARG EXTRA_SH=noop.sh
-ARG DISTRO=fedora37
-ARG LANG='en_US.UTF-8'
-ARG LANGUAGE='en_US:en'
-ARG LC_ALL='en_US.UTF-8'
-ARG TZ='Etc/UTC'
-ENV HOME=/home/kasm-default-profile \
-    TERM=xterm \
-    STARTUPDIR=/dockerstartup \
-    INST_SCRIPTS=/dockerstartup/install \
-    KASM_VNC_PATH=/usr/share/kasmvnc \
-    SHELL=/bin/bash \
-    LANG=$LANG \
-    LANGUAGE=$LANGUAGE \
-    LC_ALL=$LC_ALL \
-    TZ=$TZ \
-    DISTRO=$DISTRO
-
-WORKDIR $HOME
-RUN mkdir -p $HOME/Desktop
-
-### Ensure all needed packages are installed.
-### Consider "yum install -y gettext nss_wraper". There's a typo in nss_wraper
-### (should be nss_wrapper), and yum would just ignore it. Thus, a necessary
-### package would be missing. With skip_missing_names_on_install, yum will exit
-### with 1 exit code and that will stop image building.
-RUN dnf install -y 'dnf-command(config-manager)' && \
-		if [ "${DISTRO}" == "fedora41" ]; then \
-				dnf-3 config-manager --setopt=skip_missing_names_on_install=False --save; \
-		else \
-				dnf config-manager --setopt=skip_missing_names_on_install=False --save; \
-		fi
+### Copy over the maximization script to our startup dir for use by app images.
+COPY ./src/ubuntu/install/maximize_script $STARTUPDIR/
 
 ### Install custom fonts
 COPY ./src/ubuntu/install/fonts $INST_SCRIPTS/fonts/
@@ -59,9 +49,17 @@ RUN bash $INST_SCRIPTS/fonts/install_custom_fonts.sh && rm -rf $INST_SCRIPTS/fon
 ### Install xfce UI
 COPY ./src/ubuntu/install/xfce $INST_SCRIPTS/xfce/
 RUN bash $INST_SCRIPTS/xfce/install_xfce_ui.sh && rm -rf $INST_SCRIPTS/xfce/
-COPY ./src/$DISTRO/xfce/.config/ $HOME/.config/
-COPY /src/common/resources/images/bg_kasm.png /usr/share/backgrounds/bg_kasm.png
-COPY /src/common/resources/images/$BG_IMG /usr/share/backgrounds/bg_default.png
+ADD ./src/$DISTRO/xfce/.config/ $HOME/.config/
+RUN mkdir -p /usr/share/extra/backgrounds/
+RUN mkdir -p /usr/share/extra/icons/
+ADD /src/common/resources/images/bg_skylus_workspaces.png /usr/share/backgrounds/bg_default.png
+ADD /src/common/resources/images/$BG_IMG  /usr/share/backgrounds/bg_kali.jpg
+ADD /src/common/resources/images/icon_ubuntu.png /usr/share/extra/icons/icon_ubuntu.png
+ADD /src/common/resources/images/icon_ubuntu.png /usr/share/extra/icons/icon_default.png
+ADD /src/common/resources/images/icon_kasm.png /usr/share/extra/icons/icon_kasm.png
+ADD /src/common/resources/images/egress_info.svg /usr/share/extra/icons/egress_info.svg
+ADD /src/common/resources/images/egress_error.svg /usr/share/extra/icons/egress_error.svg
+ADD /src/common/resources/images/egress_offline.svg /usr/share/extra/icons/egress_offline.svg
 
 ### Install kasm_vnc dependencies and binaries
 COPY ./src/ubuntu/install/kasm_vnc $INST_SCRIPTS/kasm_vnc/
@@ -75,10 +73,6 @@ RUN bash $INST_SCRIPTS/profile_sync/install_profile_sync.sh
 ### Install Kasm Upload Server
 COPY ./src/ubuntu/install/kasm_upload_server $INST_SCRIPTS/kasm_upload_server/
 RUN bash $INST_SCRIPTS/kasm_upload_server/install_kasm_upload_server.sh  && rm -rf $INST_SCRIPTS/kasm_upload_server/
-
-### Install custom cursors
-COPY ./src/ubuntu/install/cursors $INST_SCRIPTS/cursors/
-RUN bash $INST_SCRIPTS/cursors/install_cursors.sh && rm -rf $INST_SCRIPTS/cursors/
 
 ### Install Audio
 COPY ./src/ubuntu/install/audio $INST_SCRIPTS/audio/
@@ -106,6 +100,10 @@ COPY ./src/ubuntu/install/printer/resources/*.ppd /etc/cups/ppd/
 COPY ./src/ubuntu/install/recorder $INST_SCRIPTS/recorder/
 RUN bash $INST_SCRIPTS/recorder/install_recorder.sh && rm -rf $INST_SCRIPTS/recorder
 
+### Install custom cursors
+COPY ./src/ubuntu/install/cursors $INST_SCRIPTS/cursors/
+RUN bash $INST_SCRIPTS/cursors/install_cursors.sh && rm -rf $INST_SCRIPTS/cursors/
+
 ### Install Squid
 COPY ./src/ubuntu/install/squid/install/ $INST_SCRIPTS/squid_install/
 RUN bash $INST_SCRIPTS/squid_install/install_squid.sh && rm -rf $INST_SCRIPTS/squid_install/
@@ -115,8 +113,7 @@ COPY ./src/ubuntu/install/squid/resources/SN.png /usr/local/squid/share/icons/SN
 RUN chown proxy:proxy /usr/local/squid/share/icons/SN.png
 COPY ./src/ubuntu/install/squid/resources/error_message/access_denied.html /usr/local/squid/share/errors/en/ERR_ACCESS_DENIED
 RUN chown proxy:proxy /usr/local/squid/share/errors/en/ERR_ACCESS_DENIED
-RUN rm -rf "$INST_SCRIPTS/resources/"
-
+RUN rm -rf $INST_SCRIPTS/resources/
 RUN chmod +x /etc/squid/kasm_squid_adapter
 RUN chmod +x /etc/squid/start_squid.sh && chmod 4755 /etc/squid/start_squid.sh
 
@@ -126,7 +123,7 @@ RUN bash $INST_SCRIPTS/smartcard/install_smartcard.sh && rm -rf $INST_SCRIPTS/sm
 
 ### configure startup
 COPY ./src/common/scripts/kasm_hook_scripts $STARTUPDIR
-COPY ./src/common/startup_scripts $STARTUPDIR
+ADD ./src/common/startup_scripts $STARTUPDIR
 RUN bash $STARTUPDIR/set_user_permission.sh $STARTUPDIR $HOME && \
     echo 'source $STARTUPDIR/generate_container_user' >> $HOME/.bashrc
 
@@ -134,21 +131,23 @@ RUN bash $STARTUPDIR/set_user_permission.sh $STARTUPDIR $HOME && \
 COPY ./src/ubuntu/install/extra $INST_SCRIPTS/extra/
 RUN bash $INST_SCRIPTS/extra/$EXTRA_SH  && rm -rf $INST_SCRIPTS/extra/
 
+### VirtualGL
+COPY ./src/ubuntu/install/virtualgl $INST_SCRIPTS/virtualgl/
+RUN bash $INST_SCRIPTS/virtualgl/install_virtualgl.sh && rm -rf $INST_SCRIPTS/virtualgl/
+
+### Sysbox support
+COPY ./src/ubuntu/install/sysbox $INST_SCRIPTS/sysbox/
+RUN bash $INST_SCRIPTS/sysbox/install_systemd.sh && rm -rf $INST_SCRIPTS/sysbox/
+
 ### Custom Folder Emblems
 COPY ./src/ubuntu/install/emblems $INST_SCRIPTS/emblems/
 RUN bash $INST_SCRIPTS/emblems/install_emblems.sh && rm -rf $INST_SCRIPTS/emblems/
-
-### Egress Icons
-RUN mkdir -p /usr/share/extra/icons/
-ADD /src/common/resources/images/egress_info.svg /usr/share/extra/icons/egress_info.svg
-ADD /src/common/resources/images/egress_error.svg /usr/share/extra/icons/egress_error.svg
-ADD /src/common/resources/images/egress_offline.svg /usr/share/extra/icons/egress_offline.svg
 
 ### Create user and home directory for base images that don't already define it
 RUN (groupadd -g 1000 kasm-user \
     && useradd -M -u 1000 -g 1000 kasm-user \
     && usermod -a -G kasm-user kasm-user) ; exit 0
-ENV HOME /home/kasm-user
+ENV HOME=/home/kasm-user
 WORKDIR $HOME
 RUN mkdir -p $HOME && chown -R 1000:0 $HOME
 
@@ -175,16 +174,17 @@ RUN touch $STARTUPDIR/wm.log \
     && chmod 755 $STARTUPDIR/audio_input/kasm_audio_input_server \
     && chmod 755 $STARTUPDIR/gamepad/kasm_gamepad_server \
     && chmod 755 $STARTUPDIR/webcam/kasm_webcam_server \
-    && chmod 755 $STARTUPDIR/generate_container_user \
     && chmod 755 $STARTUPDIR/printer/kasm_printer_service \
     && chmod 755 $STARTUPDIR/smartcard/kasm_smartcard_bridge \
     && chmod 755 $STARTUPDIR/recorder/kasm_recorder_service \
+    && chmod 755 $STARTUPDIR/generate_container_user \
     && chmod +x $STARTUPDIR/jsmpeg/kasm_audio_out-linux \
     && rm -rf $STARTUPDIR/install \
     && mkdir -p $STARTUPDIR/kasmrx/Downloads \
     && chown 1000:1000 $STARTUPDIR/kasmrx/Downloads \
     && chown -R root:root /usr/local/bin \
     && chown 1000:root /var/run/pulse \
+    && rm -Rf /home/kasm-default-profile/.launchpadlib \
     && mkdir -p /run/pcscd \
     && chown 1000:1000 /run/pcscd
 
@@ -197,11 +197,12 @@ FROM scratch
 COPY --from=base_layer / /
 
 ### Labels
-LABEL "org.opencontainers.image.authors"='Kasm Tech "info@kasmweb.com"'
+LABEL "org.opencontainers.image.authors"='Netweb Technologies India Ltd. "info@netwebindia.com"'
 LABEL "com.kasmweb.image"="true"
+LABEL "com.kasmweb.gpu_acceleration_egl"="nvidia"
 
 ### Environment config
-ARG DISTRO=fedora37
+ARG DISTRO=ubuntu
 ARG EXTRA_SH=noop.sh
 ARG LANG='en_US.UTF-8'
 ARG LANGUAGE='en_US:en'
@@ -210,6 +211,7 @@ ARG START_PULSEAUDIO=1
 ARG START_XFCE4=1
 ARG TZ='Etc/UTC'
 ENV AUDIO_PORT=4901 \
+    DEBIAN_FRONTEND=noninteractive \
     DISPLAY=:1 \
     DISTRO=$DISTRO \
     GOMP_SPINCOUNT=0 \
@@ -220,7 +222,8 @@ ENV AUDIO_PORT=4901 \
     LANG=$LANG \
     LANGUAGE=$LANGUAGE \
     LC_ALL=$LC_ALL \
-    LD_LIBRARY_PATH=/usr/local/lib/ \
+    LD_LIBRARY_PATH=/opt/libjpeg-turbo/lib64/:/usr/local/lib/ \
+    LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/lib/i386-linux-gnu${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}:/usr/local/nvidia/lib:/usr/local/nvidia/lib64 \
     MAX_FRAME_RATE=24 \
     NO_VNC_PORT=6901 \
     OMP_WAIT_POLICY=PASSIVE \
